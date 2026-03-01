@@ -157,7 +157,7 @@ wsgate.RDP = new Class( {
      * @param {ArrayBuffer} data WebSocket 收到的二进制消息
      */
     _pmsg: function(data) { // process a binary RDP message from our queue
-        var op, hdr, count, rects, bmdata, rgba, compressed, i, offs, x, y, sx, sy, w, h, dw, dh, bpp, color, len;
+        var op, hdr, count, rects, bmdata, rgba, compressed, i, offs, x, y, sx, sy, w, h, dw, dh, bpp, len;
         op = new Uint32Array(data, 0, 1);
         switch (op[0]) {
             case 0:
@@ -385,17 +385,14 @@ wsgate.RDP = new Class( {
                 // GDI_PATINVERT: D = P ^ D（目标与画刷异或）
                 this.cctx.globalCompositeOperation = 'xor';
                 return true;
-                break;
             case 0x00F00021:
                 // GDI_PATCOPY: D = P（画刷覆盖目标）
                 this.cctx.globalCompositeOperation = 'copy';
                 return true;
-                break;
             case 0x00CC0020:
                 // GDI_SRCCOPY: D = S（源图覆盖目标）
                 this.cctx.globalCompositeOperation = 'source-over';
                 return true;
-                break;
             default:
                 this.log.warn('Unsupported raster op: ', rop.toString(16));
                 break;
@@ -407,7 +404,6 @@ wsgate.RDP = new Class( {
      * 主动断开或连接异常时调用。
      */
     _reset: function() {
-        this.log.setWS(null); // 关闭远程日志传输
         if (this.sock.readyState == this.sock.OPEN) {
             this.fireEvent('disconnected');
             this.sock.close();
@@ -787,12 +783,10 @@ wsgate.RDP = new Class( {
     },
     /**
      * WebSocket 连接建立事件处理器（onopen）。
-     * 绑定鼠标/键盘/触摸事件，启用远程日志，并触发 connected 事件。
+     * 绑定鼠标/键盘/触摸事件，并触发 connected 事件。
      */
-    onWSopen: function(evt) {
+    onWSopen: function() {
         this.open = true;
-        // 将 WebSocket 注入日志对象，启用远程日志传输
-        this.log.setWS(this.sock);
         // 绑定 Canvas 输入事件
         this.canvas.addEvent('mousemove', this.onMm.bind(this));
         this.canvas.addEvent('mousedown', this.onMd.bind(this));
@@ -845,7 +839,7 @@ wsgate.RDP = new Class( {
      * WebSocket 错误事件处理器（onerror）。
      * 连接阶段（CONNECTING 状态）发生错误时触发连接失败告警。
      */
-    onWSerr: function (evt) {
+    onWSerr: function() {
         this.open = false;
         switch (this.sock.readyState) {
             case this.sock.CONNECTING:
