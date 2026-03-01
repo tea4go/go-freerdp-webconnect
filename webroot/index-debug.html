@@ -204,6 +204,15 @@
                         $('appVersion').set('text', d.app);
                         $('freerdpVersion').set('text', d.freerdp);
                     });
+                    // 从后端获取连接默认参数并预填充表单
+                    fetch('/api/config').then(function(r) {
+                        return r.json();
+                    }).then(function(d) {
+                        if (d.host) $('rdphost').value = d.host;
+                        if (d.user) $('rdpuser').value = d.user;
+                        if (d.pass) $('rdppass').value = d.pass;
+                        if (d.port) $('port').value = d.port;
+                    });
                     var tgl = $('togglePass');
                     if (tgl) {
                         tgl.addEvent('click', function() {
@@ -278,17 +287,17 @@
                                     <table>
                                         <tr>
                                             <td class="key"><label for="host">主机名：</label></td>
-                                            <td><input id="rdphost" type="text" name="host" value="10.88.16.102" /></td>
+                                            <td><input id="rdphost" type="text" name="host" value="" /></td>
                                         </tr>
                                         <tr>
                                             <td class="key"><label for="user">用户名：</label></td>
-                                            <td><input id="rdpuser" type="text" name="user" value="administrator" /></td>
+                                            <td><input id="rdpuser" type="text" name="user" value="" /></td>
                                         </tr>
                                         <tr>
                                             <td class="key"><label for="pass">密码：</label></td>
                                             <td>
                                                 <div style="position:relative;display:block;">
-                                                    <input id="rdppass" type="password" name="pass" value="abc@123ABCDE" autocomplete="off" style="padding-right:28px;" />
+                                                    <input id="rdppass" type="password" name="pass" value="" autocomplete="off" style="padding-right:28px;" />
                                                     <span id="togglePass" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;line-height:1;">👁️</span>
                                                 </div>
                                             </td>

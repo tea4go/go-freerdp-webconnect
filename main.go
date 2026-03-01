@@ -182,6 +182,17 @@ func main() {
 		})
 	})
 
+	// 连接默认参数接口：返回命令行传入的 RDP 连接参数，供前端表单预填充
+	http.HandleFunc("/api/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]any{
+			"host": rdpHost,
+			"user": rdpUser,
+			"pass": rdpPass,
+			"port": rdpPort,
+		})
+	})
+
 	// 静态文件服务：禁用缓存确保浏览器始终获取最新页面
 	noCacheFS := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
