@@ -507,29 +507,6 @@ wsgate.RDP = new Class( {
         this.cctx.clip();
     },
     /**
-     * 填充矩形（当前已禁用，函数体开头直接 return）。
-     * 保留代码用于参考：根据宽高选择 stroke（细线）或 fillRect（矩形）。
-     */
-    _fR: function(x, y, w, h, color) {
-        return; // 已禁用
-        if ((w < 2) || (h < 2)) {
-            this.cctx.strokeStyle = color;
-            this.cctx.beginPath();
-            this.cctx.moveTo(x, y);
-            if (w > h) {
-                this.cctx.lineWidth = h;
-                this.cctx.lineTo(x + w, y);
-            } else {
-                this.cctx.lineWidth = w;
-                this.cctx.lineTo(x, y + h);
-            }
-            this.cctx.stroke();
-        } else {
-            this.cctx.fillStyle = color;
-            this.cctx.fillRect(x, y, w, h);
-        }
-    },
-    /**
      * 根据 RDP ROP3 操作码设置 Canvas 合成混合模式。
      * 仅支持三种常用 ROP3，不支持的操作码输出警告并返回 false。
      * @param {number} rop RDP ROP3 操作码（32位）
