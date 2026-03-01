@@ -46,30 +46,30 @@
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    main.go                          │
-│  HTTP / WebSocket 网关                               │
-│  initSocket() → rdpconnect() / processSendQ()       │
+│                    main.go                                         │
+│  HTTP / WebSocket 网关                                              │
+│  initSocket() → rdpconnect() / processSendQ()                      │
 └──────────────────────┬──────────────────────────────┘
                        │  Go channel (sendq / recvq / inputq)
 ┌──────────────────────▼──────────────────────────────┐
-│                    rdp.go                           │
+│                    rdp.go                                           │
 │  ┌──────────────────────────────────────────────┐   │
-│  │  Go 层                                        │   │
-│  │  rdpconnect()      主事件循环                  │   │
-│  │  primaryPatBlt()   图案填充回调                │   │
-│  │  primaryScrBlt()   屏幕复制回调                │   │
-│  │  primaryOpaqueRect() 矩形填充回调              │   │
-│  │  primaryMultiOpaqueRect() 多矩形填充回调       │   │
-│  │  beginPaint()      帧开始回调                  │   │
-│  │  endPaint()        帧结束回调                  │   │
-│  │  setBounds()       裁剪区回调                  │   │
-│  │  bitmapUpdate()    位图更新回调                │   │
-│  │  preConnect()      连接前配置回调              │   │
-│  │  postConnect()     连接成功回调                │   │
+│  │  Go 层                                                    │   │
+│  │  rdpconnect()      主事件循环                             │   │
+│  │  primaryPatBlt()   图案填充回调                           │   │
+│  │  primaryScrBlt()   屏幕复制回调                           │   │
+│  │  primaryOpaqueRect() 矩形填充回调                        │   │
+│  │  primaryMultiOpaqueRect() 多矩形填充回调                 │   │
+│  │  beginPaint()      帧开始回调                            │   │
+│  │  endPaint()        帧结束回调                            │   │
+│  │  setBounds()       裁剪区回调                            │   │
+│  │  bitmapUpdate()    位图更新回调                          │   │
+│  │  preConnect()      连接前配置回调                        │   │
+│  │  postConnect()     连接成功回调                            │   │
 │  └──────────────┬───────────────────────────────┘   │
-│                 │  CGo 调用                          │
-│  ┌──────────────▼───────────────────────────────┐   │
-│  │  C 桥接层（CGo 内嵌 C）                        │   │
+│                 │  CGo 调用                                   │   │
+┌─────────────────▼───────────────────────────────────┐   │
+│  │  C 桥接层（CGo 内嵌 C）                                           │   │
 │  │  cbPreConnect / cbPostConnect                 │   │
 │  │  cbPrimaryPatBlt / cbPrimaryScrBlt 等         │   │
 │  │  sendMouseInput / sendKupdownInput 等         │   │
