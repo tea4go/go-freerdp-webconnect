@@ -11,6 +11,8 @@ package main
 #include <freerdp/client.h>
 #include <freerdp/client/disp.h>
 #include <freerdp/client/cmdline.h>
+#include <freerdp/client/channels.h>
+#include <freerdp/addin.h>
 #include <winpr/synch.h>
 #include <winpr/collections.h>
 #include <unistd.h>
@@ -200,9 +202,8 @@ static BOOL cbPreConnect(freerdp* instance) {
 	// 注册通道连接/断开事件，以便捕获 DISP 虚拟通道上下文
 	registerChannelEvents(instance);
 
-	// 加载 DISP 动态虚拟通道，用于支持动态分辨率调整
-	const char* dispName = DISP_DVC_CHANNEL_NAME;
-	freerdp_client_add_dynamic_channel(instance->context->settings, 1, &dispName);
+	// DISP 通道由 freerdp_client_load_addins（通过 LoadChannels 回调）自动添加，
+	// 使用内部名称 "disp"（而非协议层名 DISP_DVC_CHANNEL_NAME），无需在此手动添加。
 
 	return preConnect(instance);
 }
@@ -214,9 +215,6 @@ static BOOL cbPostConnect(freerdp* instance) {
 	// 若不调用此函数，context->cache 为 NULL，指针更新会崩溃
 	if (!gdi_init(instance, PIXEL_FORMAT_XRGB32))
 		return FALSE;
-
-	// 加载通道插件（含 DISP），需在连接建立后调用
-	freerdp_client_load_channels(instance);
 
 	// gdi_init 会用 GDI 默认回调覆盖我们的回调，此处重新注册
 	rdpContext* context = instance->context;
@@ -255,10 +253,21 @@ static DELTA_RECT* nextMultiOpaqueRectangle(MULTI_OPAQUE_RECT_ORDER* moro, int i
 	return &moro->rectangles[i];
 }
 
-// 绑定预连接和后连接回调到 freerdp 实例
+// 绑定预连接和后连接回调到 freerdp 实例，并设置 LoadChannels 回调。
+// LoadChannels 由 FreeRDP 在 cbPreConnect 之后、TCP 连接之前通过
+// utils_reload_channels 自动调用，确保通道管理器（pChannelMgr）
+// 在 drdynvc 加载 DVC 插件时已完成初始化。
 static void bindCallbacks(freerdp* instance) {
 	instance->PreConnect = cbPreConnect;
 	instance->PostConnect = cbPostConnect;
+	instance->LoadChannels = freerdp_client_load_channels;
+}
+
+// 注册静态通道插件提供者（freerdp_context_new 不会自动注册，需手动调用）
+// 注册后 freerdp_client_load_channels 可从静态表中查找通道入口点，
+// 不再依赖不存在的 .so 动态插件文件，消除 ERROR 日志。
+static BOOL registerStaticAddinProvider(void) {
+	return freerdp_register_addin_provider(freerdp_channels_load_static_addin_entry, 0) == CHANNEL_RC_OK;
 }
 
 // 检查并处理 FreeRDP 事件句柄（最多等待 100ms）
@@ -415,6 +424,10 @@ func rdpconnect(sendq chan []byte, recvq chan []byte, inputq chan inputEvent, se
 	// 使用原生 C rdpContext 大小，不在 C 内存中嵌入 Go 字段
 	instance.ContextSize = C.size_t(C.sizeof_rdpContext)
 	C.freerdp_context_new(instance)
+
+	// 注册静态通道提供者：freerdp_context_new 不会自动注册，
+	// 手动注册后通道可从静态表加载，无需依赖不存在的 .so 插件文件
+	C.registerStaticAddinProvider()
 
 	// 将 Go 数据注册到全局 map，以 C context 指针为 key
 	// 这是 CGo 安全的替代方案，避免在 C 内存中存储 Go 指针
@@ -733,6 +746,18 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	// FreeRDP_SupportDisplayControl=5185，FreeRDP_DynamicResolutionUpdate=1558
 	C.freerdp_settings_set_bool(settings, 5185, C.TRUE)
 	C.freerdp_settings_set_bool(settings, 1558, C.TRUE)
+
+	// 禁用 rdpdr 通道及其所有触发条件，避免因插件库不存在而产生 ERROR 日志。
+	// freerdp_client_load_addins 中以下任一条件为 TRUE 时会强制开启 DeviceRedirection：
+	//   NetworkAutoDetect / SupportHeartbeatPdu / SupportMultitransport (RDP8 特性)
+	//   AudioPlayback (rdpsnd 依赖 rdpdr)
+	// 因此需要全部禁用。
+	C.freerdp_settings_set_bool(settings, 4160, C.FALSE) // FreeRDP_DeviceRedirection
+	C.freerdp_settings_set_bool(settings, 137, C.FALSE)  // FreeRDP_NetworkAutoDetect
+	C.freerdp_settings_set_bool(settings, 144, C.FALSE)  // FreeRDP_SupportHeartbeatPdu
+	C.freerdp_settings_set_bool(settings, 513, C.FALSE)  // FreeRDP_SupportMultitransport
+	C.freerdp_settings_set_bool(settings, 714, C.FALSE)  // FreeRDP_AudioPlayback
+	C.freerdp_settings_set_bool(settings, 715, C.FALSE)  // FreeRDP_AudioCapture
 
 	return C.TRUE
 }

@@ -78,7 +78,7 @@ func processSendQ(ws *websocket.Conn, sendq chan []byte, recvq chan []byte) {
 
 // initSocket 是 /ws 的连接入口：
 // - 准备收发通道与输入事件队列
-// - 读取分辨率并构建 RDP 连接参数
+// - 读取分辨率与 RDP 连接参数（优先使用 URL 查询参数，缺省时回退到命令行参数）
 // - 启动 RDP 后端与发送协程
 // - 循环读取来自浏览器的输入事件，转为 inputEvent 投递给 RDP
 func initSocket(ws *websocket.Conn) {
@@ -88,10 +88,26 @@ func initSocket(ws *websocket.Conn) {
 	width, height := getResolution(ws)
 	fmt.Printf("User requested size %d x %d\n", width, height)
 
-	host := rdpHost // 这里拷贝到局部变量，避免闭包中被意外修改
-	user := rdpUser
-	pass := rdpPass
+	// 优先使用浏览器表单通过 URL 参数传入的凭据，缺省时回退到命令行参数
+	req := ws.Request()
+	host := req.FormValue("host")
+	if host == "" {
+		host = rdpHost
+	}
+	user := req.FormValue("user")
+	if user == "" {
+		user = rdpUser
+	}
+	pass := req.FormValue("pass")
+	if pass == "" {
+		pass = rdpPass
+	}
 	port := rdpPort
+	if portStr := req.FormValue("port"); portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil && p > 0 {
+			port = p
+		}
+	}
 
 	fmt.Printf("Connecting to %s:%d as %s\n", host, port, user)
 
@@ -142,15 +158,9 @@ func main() {
 	pflag.StringVarP(&rdpHost, "host", "", "10.88.16.102", "远程桌面服务器地址")
 	pflag.IntVarP(&rdpPort, "port", "", 53389, "远程桌面服务器端口")
 	pflag.StringVarP(&rdpUser, "user", "", "administrator", "用户名")
-	pflag.StringVarP(&rdpPass, "pass", "", "", "密码")
+	pflag.StringVarP(&rdpPass, "pass", "", "", "密码（可选，也可在网页表单中填写）")
 	pflag.IntVarP(&listenPort, "listen", "", 54455, "HTTP 监听端口")
 	pflag.Parse()
-
-	if rdpHost == "" || rdpPass == "" {
-		fmt.Printf("用法: %s [选项]\n\n选项:\n", appName) // 必填项缺失时给出帮助
-		pflag.PrintDefaults()
-		return
-	}
 
 	// 标准程序块
 	network.SetAppVersion(appName, appVer, IsBeta, BuildTime) // 设置应用版本号，便于自动更新
@@ -162,12 +172,18 @@ func main() {
 	// WebSocket 入口：浏览器通过 /ws 建立连接
 	http.Handle("/ws", websocket.Handler(initSocket))
 
-	// 静态文件服务：前端页面位于 webroot 目录
-	http.Handle("/", http.FileServer(http.Dir("webroot")))
+	// 静态文件服务：禁用缓存确保浏览器始终获取最新页面
+	noCacheFS := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		http.FileServer(http.Dir("webroot")).ServeHTTP(w, r)
+	})
+	http.Handle("/", noCacheFS)
 
 	fmt.Printf("请访问: http://localhost:%d/index-debug.html\n", listenPort)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", listenPort), nil)
 	if err != nil {
-		panic("ListenANdServe: " + err.Error()) // 启动失败直接崩溃并输出原因
+		panic("ListenAndServe: " + err.Error()) // 启动失败直接崩溃并输出原因
 	}
 }

@@ -17,7 +17,7 @@
         <script src="js/wsgate-debug.js"></script>
         <script src="js/vkb-debug.js"></script>
         <script language="javascript" type="text/javascript">
-            var wsBase = "ws://localhost:4455/ws";
+            var wsBase = "ws://" + window.location.host + "/ws";
             var RIMtablet = navigator.appVersion && (-1 != navigator.appVersion.indexOf('RIM Tablet'));
             var mhx = 100;
             var mhy = 100;
@@ -40,7 +40,11 @@
             }
             function RDPrun() {
                 var wsUri = wsBase
-                    + '?dtsize=' + $('screen').width + 'x' + $('screen').height
+                    + '?host=' + encodeURIComponent($('rdphost').value)
+                    + '&user=' + encodeURIComponent($('rdpuser').value)
+                    + '&pass=' + encodeURIComponent($('rdppass').value)
+                    + '&port=' + encodeURIComponent($('port').value)
+                    + '&dtsize=' + $('screen').width + 'x' + $('screen').height
                     ;
                 rdp = new wsgate.RDP(wsUri, $('screen'), !RIMtablet, RIMtablet, vkbd);
                 rdp.addEvent('alert', function(msg) {
@@ -56,6 +60,7 @@
                         window.removeEvent('resize', onConnectedResize);
                         OnDesktopSize();
                         window.addEvent('resize', OnDesktopSize);
+                        showDialog(true);
                         });
                 rdp.addEvent('mouserelease', ResetRdpMouseFlags);
                 rdp.addEvent('touch2', function() {
@@ -202,7 +207,8 @@
                         (Browser.firefox && (Browser.version >= 11.0)) ||
                         (Browser.chrome && (Browser.version >= 17)) ||
                         (Browser.safari && (Browser.version >= 6)) ||
-                        (Browser.ie && (Browser.version >= 10.0));
+                        (Browser.ie && (Browser.version >= 10.0)) ||
+                        (!!window.WebSocket);
                     if (wsOK) {
                         vkbd = new wsgate.vkbd({
                             version:false,
@@ -211,7 +217,11 @@
                             layouts: ['en_US'],
                             deflayout: 'en_US'
                         });
-                        RDPrun();
+                        // 显示连接对话框，等待用户填写参数并点击 Connect
+                        showDialog(true);
+                        $('rdpconnect').addEvent('click', function() {
+                            RDPrun();
+                        });
                     } else {
                         alert('Sorry!\nYour Browser (' + Browser.name + ' ' + Browser.version
                                 + ') does not yet\nprovide the required HTML5 features '
