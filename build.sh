@@ -149,7 +149,7 @@ echo -e "\n${YELLOW}[5/5] 编译 Go 项目...${NC}"
 
 # 设置 CGO 环境变量
 export CGO_CFLAGS="-I${FREERDP_INSTALL}/include"
-export CGO_LDFLAGS="-L${FREERDP_INSTALL}/lib -L${FREERDP_INSTALL}/lib/x86_64-linux-gnu -lfreerdp2 -lfreerdp-client2 -lwinpr2"
+export CGO_LDFLAGS="-L${FREERDP_INSTALL}/lib -L${FREERDP_INSTALL}/lib/x86_64-linux-gnu -lfreerdp3 -lfreerdp-client3 -lwinpr3"
 export LD_LIBRARY_PATH="${FREERDP_INSTALL}/lib:${FREERDP_INSTALL}/lib/x86_64-linux-gnu:${LD_LIBRARY_PATH}"
 
 # 编译
