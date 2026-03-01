@@ -325,6 +325,14 @@ table td.key {
     box-sizing: border-box;
 }
 
+#sizeHint {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #9CA3AF;
+    letter-spacing: 0.2px;
+}
+
 /* ── 连接按钮 ─────────────────────────────────────────── */
 
 #rdpconnect {

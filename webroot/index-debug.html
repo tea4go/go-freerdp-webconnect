@@ -166,6 +166,8 @@
                 }
                 $('screen').width = w;
                 $('screen').height = h;
+                var hint = $('sizeHint');
+                if (hint) hint.set('text', w + ' × ' + h);
             }
             function OnDesktopSize() {
                 ResizeCanvas($('dtsize').value);
@@ -302,6 +304,7 @@
                                                     <option>1280x1024</option>
                                                     <option value="auto" selected>可用区域</option>
                                                 </select>
+                                                <span id="sizeHint"></span>
                                             </td>
                                         </tr>
                                         <tr>
