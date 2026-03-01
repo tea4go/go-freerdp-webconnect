@@ -195,6 +195,13 @@
                         $('perf').value = '2';
                     }
                     window.addEvent('resize', OnDesktopSize);
+                    // 从后端获取版本信息并显示
+                    fetch('/api/version').then(function(r) {
+                        return r.json();
+                    }).then(function(d) {
+                        $('appVersion').set('text', d.app);
+                        $('freerdpVersion').set('text', d.freerdp);
+                    });
                     var tgl = $('togglePass');
                     if (tgl) {
                         tgl.addEvent('click', function() {
@@ -357,8 +364,8 @@
                         <h4 title="显示版本信息">关于</h4>
                         <div class="about">
                             <h2>Go FreeRDP</h2>
-                            应用版本 %VERSION%<br />
-                            FreeRDP 版本 %FREERDP_VERSION%
+                            应用版本 <span id="appVersion">-</span><br />
+                            FreeRDP 版本 <span id="freerdpVersion">-</span>
                         </div>
                     </div>
                 </td>

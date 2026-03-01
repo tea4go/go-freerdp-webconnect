@@ -8,6 +8,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -171,6 +172,15 @@ func main() {
 
 	// WebSocket 入口：浏览器通过 /ws 建立连接
 	http.Handle("/ws", websocket.Handler(initSocket))
+
+	// 版本信息接口：返回应用版本与 FreeRDP 库版本
+	http.HandleFunc("/api/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"app":     appVer,
+			"freerdp": GetFreeRDPVersion(),
+		})
+	})
 
 	// 静态文件服务：禁用缓存确保浏览器始终获取最新页面
 	noCacheFS := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

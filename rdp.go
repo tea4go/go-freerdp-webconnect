@@ -408,6 +408,11 @@ func lookupCtx(ctx *C.rdpContext) *rdpContextData {
 	return d
 }
 
+// GetFreeRDPVersion 从 FreeRDP 动态库读取版本字符串
+func GetFreeRDPVersion() string {
+	return C.GoString(C.freerdp_get_version_string())
+}
+
 // rdpconnect 是 RDP 连接的主函数，运行在独立 goroutine 中
 // 负责建立连接、驱动事件循环、处理输入事件，直到连接断开
 func rdpconnect(sendq chan []byte, recvq chan []byte, inputq chan inputEvent, settings *rdpConnectionSettings) {
