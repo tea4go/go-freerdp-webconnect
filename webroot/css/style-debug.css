@@ -232,7 +232,7 @@ body {
     overflow: hidden;
     margin: 0;
     /* 深空蓝渐变背景 */
-    background: linear-gradient(145deg, #060C24 0%, #0E1535 55%, #091225 100%);
+    background: #F5F7FA;
 }
 
 /* ── 表单基础控件 ─────────────────────────────────────── */
@@ -321,7 +321,7 @@ table td.key {
 /* ── 输入框统一宽度 ───────────────────────────────────── */
 
 #rdphost, #rdpuser, #rdppass, #dtsize {
-    width: 160px;
+    width: 100%;
     box-sizing: border-box;
 }
 
@@ -386,8 +386,8 @@ table td.key {
     border-spacing: 0;
     border-radius: 16px !important;
     overflow: hidden;
-    box-shadow: 0 28px 72px rgba(0, 0, 0, 0.65),
-                0 0 0 1px rgba(255, 255, 255, 0.06);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 #maindialog > tbody > tr > td {
@@ -411,7 +411,7 @@ table td.key {
     display: flex;
     border-bottom: 1px solid #F0F1F3;
     background: #FAFBFC;
-    overflow: auto;
+    overflow: hidden;
 }
 
 .tab-menu li {
@@ -430,18 +430,16 @@ table td.key {
     font-weight: 500;
     color: #9CA3AF;
     border: none;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
+    box-shadow: inset 0 -2px 0 transparent;
     white-space: nowrap;
-    transition: color 0.2s, border-color 0.2s;
+    transition: color 0.2s, box-shadow 0.2s;
 }
 
 .tab-menu li a:hover,
 .tab-menu li a:focus {
     color: #CF0A2C;
     border: none;
-    border-bottom: 2px solid rgba(207, 10, 44, 0.30);
-    margin-bottom: -1px;
+    box-shadow: inset 0 -2px 0 rgba(207, 10, 44, 0.30);
     outline: none;
 }
 
@@ -451,8 +449,7 @@ table td.key {
     background: transparent;
     color: #CF0A2C;
     border: none;
-    border-bottom: 2px solid #CF0A2C;
-    margin-bottom: -1px;
+    box-shadow: inset 0 -2px 0 #CF0A2C;
     font-weight: 600;
 }
 
