@@ -8,10 +8,35 @@ package main
 #include <freerdp/gdi/gdi.h>
 #include <freerdp/settings.h>
 #include <freerdp/input.h>
+#include <freerdp/client.h>
+#include <freerdp/client/disp.h>
+#include <freerdp/client/cmdline.h>
 #include <winpr/synch.h>
+#include <winpr/collections.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+
+// Global disp context pointer (set when disp channel connects)
+static DispClientContext* g_dispCtx = NULL;
+
+static void onChannelConnected(void* context, const ChannelConnectedEventArgs* e) {
+    if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
+        g_dispCtx = (DispClientContext*)e->pInterface;
+    }
+}
+
+static void onChannelDisconnected(void* context, const ChannelDisconnectedEventArgs* e) {
+    if (strcmp(e->name, DISP_DVC_CHANNEL_NAME) == 0) {
+        g_dispCtx = NULL;
+    }
+}
+
+static void registerChannelEvents(freerdp* instance) {
+    wPubSub* pubSub = instance->context->pubSub;
+    PubSub_SubscribeChannelConnected(pubSub, onChannelConnected);
+    PubSub_SubscribeChannelDisconnected(pubSub, onChannelDisconnected);
+}
 
 // Map JavaScript keyCode (modifier keys only) to RDP scancode.
 // modkeys in JS: [8, 16, 17, 18, 20, 144, 145]
@@ -37,6 +62,22 @@ static void sendKupdownInput(freerdp* instance, UINT32 down, UINT32 keycode) {
     if (scancode == 0) return;
     freerdp_input_send_keyboard_event_ex(instance->context->input,
         down ? TRUE : FALSE, FALSE, scancode);
+}
+
+static void sendResizeInput(freerdp* instance, UINT32 width, UINT32 height) {
+    if (!g_dispCtx || !g_dispCtx->SendMonitorLayout) return;
+    DISPLAY_CONTROL_MONITOR_LAYOUT monitor = {0};
+    monitor.Flags = DISPLAY_CONTROL_MONITOR_PRIMARY;
+    monitor.Left = 0;
+    monitor.Top = 0;
+    monitor.Width = width;
+    monitor.Height = height;
+    monitor.PhysicalWidth = 0;
+    monitor.PhysicalHeight = 0;
+    monitor.Orientation = 0;
+    monitor.DesktopScaleFactor = 100;
+    monitor.DeviceScaleFactor = 100;
+    g_dispCtx->SendMonitorLayout(g_dispCtx, 1, &monitor);
 }
 
 static void sendKpressInput(freerdp* instance, UINT32 charcode) {
@@ -143,6 +184,13 @@ static BOOL cbPreConnect(freerdp* instance) {
 	pointer->PointerColor = cbPointerColor;
 	pointer->PointerLarge = cbPointerLarge;
 
+	// Register channel connected/disconnected events to capture DispClientContext
+	registerChannelEvents(instance);
+
+	// Load disp dynamic virtual channel for dynamic resolution update
+	const char* dispName = DISP_DVC_CHANNEL_NAME;
+	freerdp_client_add_dynamic_channel(instance->context->settings, 1, &dispName);
+
 	return preConnect(instance);
 }
 
@@ -151,6 +199,9 @@ static BOOL cbPostConnect(freerdp* instance) {
 	// Without it, context->cache is NULL and pointer updates crash.
 	if (!gdi_init(instance, PIXEL_FORMAT_XRGB32))
 		return FALSE;
+
+	// Load channel addins (including disp) after connection is established
+	freerdp_client_load_channels(instance);
 
 	// Re-register our own update callbacks after gdi_init, which would
 	// have overwritten them with GDI defaults.
@@ -362,6 +413,8 @@ func rdpconnect(sendq chan []byte, recvq chan []byte, inputq chan inputEvent, se
 				C.sendKupdownInput(instance, C.UINT32(ev.a), C.UINT32(ev.b))
 			case 2: // key press (unicode)
 				C.sendKpressInput(instance, C.UINT32(ev.b))
+			case 3: // desktop resize
+				C.sendResizeInput(instance, C.UINT32(ev.a), C.UINT32(ev.b))
 			}
 		default:
 			e := int(C.freerdp_error_info(instance))
@@ -628,6 +681,11 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_GlyphSupportLevel, C.GLYPH_SUPPORT_FULL)
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_BitmapCacheV3Enabled, C.FALSE)
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_OffscreenSupportLevel, 0)
+
+	// Enable dynamic desktop resize via RDPEDISP virtual channel
+	// FreeRDP_SupportDisplayControl=5185, FreeRDP_DynamicResolutionUpdate=1558
+	C.freerdp_settings_set_bool(settings, 5185, C.TRUE)
+	C.freerdp_settings_set_bool(settings, 1558, C.TRUE)
 
 	return C.TRUE
 }

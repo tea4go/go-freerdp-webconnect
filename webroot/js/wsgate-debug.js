@@ -984,6 +984,16 @@ wsgate.RDP = new Class( {
         if (mf.m) {
             this.aMF = 0x4000; // middle
         }
+    },
+    Resize: function(width, height) {
+        if (this.sock && this.sock.readyState == this.sock.OPEN) {
+            var buf = new ArrayBuffer(12);
+            var a = new Uint32Array(buf);
+            a[0] = 3; // WSOP_CS_RESIZE
+            a[1] = width;
+            a[2] = height;
+            this.sock.send(buf);
+        }
     }
 });
 wsgate.copyRGBA = function(inA, inI, outA, outI) {
