@@ -594,6 +594,7 @@ func primaryMultiOpaqueRect(rawContext *C.rdpContext, moro *C.MULTI_OPAQUE_RECT_
 }
 
 //export beginPaint
+// beginPaint 处理帧绘制开始事件，向客户端发送 BEGINPAINT 信号，通知前端准备接收本帧更新
 func beginPaint(rawContext *C.rdpContext) C.BOOL {
 	d := lookupCtx(rawContext)
 	if d == nil {
@@ -606,6 +607,7 @@ func beginPaint(rawContext *C.rdpContext) C.BOOL {
 }
 
 //export endPaint
+// endPaint 处理帧绘制结束事件，向客户端发送 ENDPAINT 信号，通知前端本帧所有更新已发送完毕
 func endPaint(rawContext *C.rdpContext) C.BOOL {
 	d := lookupCtx(rawContext)
 	if d == nil {
@@ -618,6 +620,8 @@ func endPaint(rawContext *C.rdpContext) C.BOOL {
 }
 
 //export setBounds
+// setBounds 处理绘制裁剪边界设置命令，向客户端发送 SETBOUNDS 消息限定本帧的有效绘制区域
+// bounds 为 nil 时忽略（服务器取消裁剪区域时会发送 nil）
 func setBounds(rawContext *C.rdpContext, bounds *C.rdpBounds) C.BOOL {
 	d := lookupCtx(rawContext)
 	if d == nil {
@@ -633,6 +637,8 @@ func setBounds(rawContext *C.rdpContext, bounds *C.rdpBounds) C.BOOL {
 }
 
 //export bitmapUpdate
+// bitmapUpdate 处理位图更新命令，将服务器发来的一批位图矩形逐一编码后发送给 WebSocket 客户端
+// 对未压缩位图需先做垂直翻转（RDP 位图为自底向上存储，浏览器 Canvas 需自顶向下）
 func bitmapUpdate(rawContext *C.rdpContext, bitmap *C.BITMAP_UPDATE) C.BOOL {
 	d := lookupCtx(rawContext)
 	if d == nil {
@@ -672,11 +678,14 @@ func bitmapUpdate(rawContext *C.rdpContext, bitmap *C.BITMAP_UPDATE) C.BOOL {
 }
 
 //export postConnect
+// postConnect 在 RDP 连接成功建立后由 C 层回调，用于记录连接成功日志
 func postConnect(_ *C.freerdp) {
 	fmt.Println("Connected.")
 }
 
 //export preConnect
+// preConnect 在建立 RDP 连接前由 C 层回调，负责将 Go 侧的连接参数写入 FreeRDP 配置，
+// 包括主机名、用户名、密码、分辨率、端口、安全协议、性能优化参数及动态分辨率支持等
 func preConnect(instance *C.freerdp) C.BOOL {
 	d := lookupCtx(instance.context)
 	if d == nil {
@@ -700,13 +709,13 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_IgnoreCertificate, C.TRUE)
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_ColorDepth, 16)
 
-	// Security settings - disable NLA and TLS, use RDP security
+	// 安全协议设置：禁用 NLA 和 TLS，改用经典 RDP 安全层（兼容旧版 Windows 及不支持 NLA 的环境）
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_NlaSecurity, C.FALSE)
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_TlsSecurity, C.FALSE)
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_RdpSecurity, C.TRUE)
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_UseRdpSecurityLayer, C.TRUE)
 
-	// Performance flags
+	// 性能优化标志：禁用壁纸、主题、菜单动画和完整窗口拖拽，减少带宽占用
 	perfFlags := C.PERF_DISABLE_WALLPAPER | C.PERF_DISABLE_THEMING |
 		C.PERF_DISABLE_MENUANIMATIONS | C.PERF_DISABLE_FULLWINDOWDRAG
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_PerformanceFlags, C.UINT32(perfFlags))
@@ -720,8 +729,8 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_BitmapCacheV3Enabled, C.FALSE)
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_OffscreenSupportLevel, 0)
 
-	// Enable dynamic desktop resize via RDPEDISP virtual channel
-	// FreeRDP_SupportDisplayControl=5185, FreeRDP_DynamicResolutionUpdate=1558
+	// 启用 RDPEDISP 虚拟通道支持动态桌面分辨率调整
+	// FreeRDP_SupportDisplayControl=5185，FreeRDP_DynamicResolutionUpdate=1558
 	C.freerdp_settings_set_bool(settings, 5185, C.TRUE)
 	C.freerdp_settings_set_bool(settings, 1558, C.TRUE)
 

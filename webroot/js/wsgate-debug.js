@@ -1,157 +1,24 @@
 // wsgate 命名空间，避免全局变量污染
 var wsgate = wsgate || {}
 
-// 检测浏览器是否支持完整的 console 调试接口（debug/info/warn/error）
+// 检测浏览器是否支持 console 调试接口
 wsgate.hasconsole = (typeof console !== 'undefined' && 'debug' in console && 'info' in console && 'warn' in console && 'error' in console);
 
 /**
- * 将任意 JS 对象转换为可读字符串，用于调试输出。
- * 通过 depth 数组追踪已访问对象，检测并避免循环引用导致的无限递归。
- * @param {*}     obj   要转换的对象
- * @param {Array} depth 已遍历对象的引用栈（内部递归使用）
- * @returns {string} 对象的字符串表示
- */
-wsgate.o2s = function(obj, depth) {
-    depth = depth || [];
-    // 检测循环引用，直接返回占位符
-    if (depth.contains(obj)) {
-        return '{SELF}';
-    }
-    switch (typeof(obj)) {
-        case 'undefined':
-            return 'undefined';
-        case 'string':
-            // 转义控制字符及反斜杠/引号
-            return '"' + obj.replace(/[\x00-\x1f\\"]/g, escape) + '"';
-        case 'array':
-            var string = [];
-            depth.push(obj);
-            for (var i = 0; i < obj.length; ++i) {
-                string.push(wsgate.o2s(obj[i], depth));
-            }
-            depth.pop();
-            return '[' + string + ']';
-        case 'object':
-        case 'hash':
-            var string = [];
-            depth.push(obj);
-            // UIEvent 某些属性（layerX/layerY/view）访问会抛异常，需特殊处理
-            var isE = (obj instanceof UIEvent);
-            Object.each(obj, function(v, k) {
-                if (v instanceof HTMLElement) {
-                    // HTMLElement 不递归展开，直接标注类型
-                    string.push(k + '={HTMLElement}');
-                } else if (isE && (('layerX' == k) || ('layerY' == k) ('view' == k))) {
-                    // UI 事件危险属性，跳过序列化
-                    string.push(k + '=!0');
-                } else {
-                    try {
-                        var vstr = wsgate.o2s(v, depth);
-                        if (vstr) {
-                            string.push(k + '=' + vstr);
-                        }
-                    } catch (error) {
-                        // 序列化失败时用占位符标记
-                        string.push(k + '=??E??');
-                    }
-                }
-            });
-            depth.pop();
-            return '{' + string + '}';
-        case 'number':
-        case 'boolean':
-            return '' + obj;
-        case 'null':
-            return 'null';
-    }
-    return null;
-};
-
-/**
- * 日志类：同时向浏览器控制台和 WebSocket 输出日志（用于远程日志收集）。
+ * 日志类：向浏览器控制台输出日志。
  */
 wsgate.Log = new Class({
-    /** 初始化：WebSocket 引用置空 */
-    initialize: function() {
-        this.ws = null;
+    debug: function() {
+        if (wsgate.hasconsole) { try { console.debug.apply(this, arguments); } catch (e) { } }
     },
-    /**
-     * 内部方法：将参数列表拼成字符串后经 WebSocket 发送。
-     * @param {string}    pfx 日志级别前缀，如 'D:' / 'I:' / 'W:' / 'E:'
-     * @param {Arguments} a   需要记录的参数列表
-     */
-    _p: function(pfx, a) {
-        var line = '';
-        var i;
-        for (i = 0; i < a.length; ++i) {
-            switch (typeof(a[i])) {
-                case 'string':
-                case 'number':
-                case 'boolean':
-                case 'null':
-                    line += a[i] + ' ';
-                    break;
-                default:
-                    // 复杂对象调用 o2s 序列化为字符串
-                    line += wsgate.o2s(a[i]) + ' ';
-                    break;
-            }
-        }
-        if (0 < line.length) {
-            this.ws.send(pfx + line);
-        }
-    },
-    /** 空操作：用于在不需要日志时替换其他方法（丢弃日志） */
-    drop: function() {
-    },
-    /** 输出 DEBUG 级别日志（同时发往 WebSocket 和浏览器控制台） */
-    debug: function() {/* DEBUG */
-        if (this.ws) {
-            this._p('D:', arguments);
-        }
-        if (wsgate.hasconsole) {
-            try { console.debug.apply(this, arguments); } catch (error) { }
-        }
-        /* /DEBUG */},
-    /** 输出 INFO 级别日志 */
     info: function() {
-        if (this.ws) {
-            var a = Array.prototype.slice.call(arguments);
-            a.unshift('I:');
-            this._p.apply(this, a);
-        }
-        /* DEBUG */if (wsgate.hasconsole) {
-            try { console.info.apply(this, arguments); } catch (error) { }
-        }/* /DEBUG */
+        if (wsgate.hasconsole) { try { console.info.apply(this, arguments); } catch (e) { } }
     },
-    /** 输出 WARN 级别日志 */
     warn: function() {
-        if (this.ws) {
-            var a = Array.prototype.slice.call(arguments);
-            a.unshift('W:');
-            this._p.apply(this, a);
-        }
-        /* DEBUG */if (wsgate.hasconsole) {
-            try { console.warn.apply(this, arguments); } catch (error) { }
-        }/* /DEBUG */
+        if (wsgate.hasconsole) { try { console.warn.apply(this, arguments); } catch (e) { } }
     },
-    /** 输出 ERROR 级别日志 */
     err: function() {
-        if (this.ws) {
-            var a = Array.prototype.slice.call(arguments);
-            a.unshift('E:');
-            this._p.apply(this, a);
-        }
-        /* DEBUG */if (wsgate.hasconsole) {
-            try { console.error.apply(this, arguments); } catch (error) { }
-        }/* /DEBUG */
-    },
-    /**
-     * 设置用于远程传输日志的 WebSocket 实例。
-     * 传入 null 则关闭远程日志。
-     */
-    setWS: function(_ws) {
-        this.ws = _ws;
+        if (wsgate.hasconsole) { try { console.error.apply(this, arguments); } catch (e) { } }
     }
 });
 
@@ -534,65 +401,6 @@ wsgate.RDP = new Class( {
                 break;
         }
         return false;
-        /*
-           case 0x00EE0086:
-        // GDI_SRCPAINT: D = S | D
-        break;
-        case 0x008800C6:
-        // GDI_SRCAND: D = S & D
-        break;
-        case 0x00660046:
-        // GDI_SRCINVERT: D = S ^ D
-        break;
-        case 0x00440328:
-        // GDI_SRCERASE: D = S & ~D
-        break;
-        case 0x00330008:
-        // GDI_NOTSRCCOPY: D = ~S
-        break;
-        case 0x001100A6:
-        // GDI_NOTSRCERASE: D = ~S & ~D
-        break;
-        case 0x00C000CA:
-        // GDI_MERGECOPY: D = S & P
-        break;
-        case 0x00BB0226:
-        // GDI_MERGEPAINT: D = ~S | D
-        break;
-        case 0x00FB0A09:
-        // GDI_PATPAINT: D = D | (P | ~S)
-        break;
-        case 0x00550009:
-        // GDI_DSTINVERT: D = ~D
-        break;
-        case 0x00000042:
-        // GDI_BLACKNESS: D = 0
-        break;
-        case 0x00FF0062:
-        // GDI_WHITENESS: D = 1
-        break;
-        case 0x00E20746:
-        // GDI_DSPDxax: D = (S & P) | (~S & D)
-        break;
-        case 0x00B8074A:
-        // GDI_PSDPxax: D = (S & D) | (~S & P)
-        break;
-        case 0x000C0324:
-        // GDI_SPna: D = S & ~P
-        break;
-        case 0x00220326:
-        // GDI_DSna D = D & ~S
-        break;
-        case 0x00220326:
-        // GDI_DSna: D = D & ~S
-        break;
-        case 0x00A000C9:
-        // GDI_DPa: D = D & P
-        break;
-        case 0x00A50065:
-        // GDI_PDxn: D = D ^ ~P
-        break;
-        */
     },
     /**
      * 重置连接状态（断开 WebSocket、清空画布、移除所有事件监听）。
@@ -826,11 +634,9 @@ wsgate.RDP = new Class( {
      * @param {Event} evt MooTools 封装的滚轮事件（evt.wheel > 0 为向上）
      */
     onMw: function(evt) {
-        var buf, a, x, y;
+        var buf, a;
         evt.preventDefault();
-        x = evt.event.layerX;
-        y = evt.event.layerY;
-        // this.log.debug('mW d: ', evt.wheel, ' x: ', x, ' y: ', y);
+        // this.log.debug('mW d: ', evt.wheel);
         if (this.sock.readyState == this.sock.OPEN) {
             buf = new ArrayBuffer(16);
             a = new Uint32Array(buf);
