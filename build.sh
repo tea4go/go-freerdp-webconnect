@@ -75,7 +75,7 @@ if [ "$AUTO_INSTALL" = true ]; then
         libxcursor-dev libxdamage-dev libxv-dev libxkbfile-dev \
         libasound2-dev libcups2-dev libxml2-dev libxrandr-dev \
         libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-        libxi-dev libxtst-dev \
+        libxi-dev libxtst-dev zlib1g-dev \
         libgtk-3-dev libgcrypt20-dev libpulse-dev \
         libusb-1.0-0-dev libudev-dev libdbus-glib-1-dev \
         uuid-dev libxkbcommon-dev libopus-dev
@@ -89,7 +89,7 @@ else
             libxcursor-dev libxdamage-dev libxv-dev libxkbfile-dev \
             libasound2-dev libcups2-dev libxml2-dev libxrandr-dev \
             libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-            libxi-dev libxtst-dev \
+            libxi-dev libxtst-dev zlib1g-dev \
             libgtk-3-dev libgcrypt20-dev libpulse-dev \
             libusb-1.0-0-dev libudev-dev libdbus-glib-1-dev \
             uuid-dev libxkbcommon-dev libopus-dev
@@ -101,10 +101,24 @@ echo -e "\n${YELLOW}[3/5] 编译 FreeRDP...${NC}"
 mkdir -p "${FREERDP_BUILD}"
 mkdir -p "${FREERDP_INSTALL}"
 
+# 检测系统 zlib 共享库路径，避免被 /opt 下第三方软件的私有 libz.a 干扰
+SYS_ZLIB_LIB=$(ldconfig -p 2>/dev/null | awk '/libz\.so / {print $NF}' | head -1)
+if [ -z "${SYS_ZLIB_LIB}" ]; then
+    # 回退到常见路径
+    for f in /usr/lib/x86_64-linux-gnu/libz.so \
+              /usr/lib/aarch64-linux-gnu/libz.so \
+              /usr/lib/libz.so; do
+        if [ -f "$f" ]; then SYS_ZLIB_LIB="$f"; break; fi
+    done
+fi
+echo -e "${GREEN}使用系统 zlib: ${SYS_ZLIB_LIB}${NC}"
+
 cd "${FREERDP_BUILD}"
 cmake "${FREERDP_SRC}" \
     -DCMAKE_INSTALL_PREFIX="${FREERDP_INSTALL}" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DZLIB_LIBRARY="${SYS_ZLIB_LIB}" \
+    -DZLIB_INCLUDE_DIR=/usr/include \
     -DWITH_SSE2=ON \
     -DWITH_CUPS=OFF \
     -DWITH_WAYLAND=OFF \
