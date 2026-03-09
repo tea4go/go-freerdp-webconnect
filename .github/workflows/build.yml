@@ -1,0 +1,140 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ master, main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+    
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential pkg-config \
+          libssl-dev libx11-dev libxext-dev libxinerama-dev \
+          libxcursor-dev libxdamage-dev libxv-dev libxkbfile-dev \
+          libasound2-dev libcups2-dev libxml2-dev libxrandr-dev \
+          libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+          libxi-dev libavutil-dev libavcodec-dev libxtst-dev \
+          libgtk-3-dev libgcrypt20-dev libpulse-dev \
+          libusb-1.0-0-dev libudev-dev libdbus-glib-1-dev \
+          uuid-dev libxkbcommon-dev libopus-dev
+    
+    - name: Clone FreeRDP
+      run: |
+        mkdir -p src
+        git clone --depth 1 --branch 3.0.0 https://github.com/FreeRDP/FreeRDP.git src/FreeRDP
+    
+    - name: Build FreeRDP
+      run: |
+        mkdir -p build/freerdp install
+        cd build/freerdp
+        cmake ../../src/FreeRDP \
+          -DCMAKE_INSTALL_PREFIX=../../install \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DWITH_SSE2=ON \
+          -DWITH_CUPS=OFF \
+          -DWITH_WAYLAND=OFF \
+          -DWITH_PULSE=OFF \
+          -DWITH_FFMPEG=OFF \
+          -DWITH_SWSCALE=OFF \
+          -DWITH_DSP_FFMPEG=OFF \
+          -DWITH_FUSE=OFF \
+          -DWITH_GSTREAMER_1_0=OFF \
+          -DWITH_CLIENT=OFF \
+          -DWITH_SERVER=OFF \
+          -DBUILD_TESTING=OFF \
+          -DCHANNEL_URBDRC=OFF
+        make -j$(nproc)
+        make install
+    
+    - name: Build Go project
+      run: |
+        export CGO_CFLAGS="-I$(pwd)/install/include"
+        export CGO_LDFLAGS="-L$(pwd)/install/lib -L$(pwd)/install/lib/x86_64-linux-gnu -lfreerdp3 -lfreerdp-client3 -lwinpr3"
+        go mod tidy
+        go build -o go-freerdp-webconnect-linux-amd64
+    
+    - name: Test binary
+      run: |
+        export LD_LIBRARY_PATH=$(pwd)/install/lib:$(pwd)/install/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+        ./go-freerdp-webconnect-linux-amd64 --help
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: go-freerdp-webconnect-linux-amd64
+        path: go-freerdp-webconnect-linux-amd64
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21'
+    
+    - name: Install FreeRDP
+      run: |
+        brew install freerdp
+    
+    - name: Build Go project
+      run: |
+        go mod tidy
+        go build -o go-freerdp-webconnect-macos-amd64
+      env:
+        CGO_CFLAGS: "-I/usr/local/opt/freerdp/include/freerdp3 -I/usr/local/opt/freerdp/include/winpr3"
+        CGO_LDFLAGS: "-L/usr/local/opt/freerdp/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3"
+    
+    - name: Test binary
+      run: |
+        export DYLD_LIBRARY_PATH=/usr/local/opt/freerdp/lib:$DYLD_LIBRARY_PATH
+        ./go-freerdp-webconnect-macos-amd64 --help
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: go-freerdp-webconnect-macos-amd64
+        path: go-freerdp-webconnect-macos-amd64
+
+  release:
+    needs: [build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - name: Download Linux artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: go-freerdp-webconnect-linux-amd64
+        path: ./artifacts/linux
+    
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: go-freerdp-webconnect-macos-amd64
+        path: ./artifacts/macos
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./artifacts/linux/go-freerdp-webconnect-linux-amd64
+          ./artifacts/macos/go-freerdp-webconnect-macos-amd64
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
