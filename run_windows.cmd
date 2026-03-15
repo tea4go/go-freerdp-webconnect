@@ -13,6 +13,10 @@ set "FREERDP_INSTALL=%PROJECT_DIR%\install"
 REM 设置 DLL 搜索路径
 set "PATH=%MINGW_BIN%;%FREERDP_INSTALL%\bin;%PATH%"
 
+REM 启用 OpenSSL legacy provider（NLA/NTLM 认证依赖 MD4/RC4，OpenSSL 3.x 默认禁用）
+set "OPENSSL_CONF=%PROJECT_DIR%\openssl.cnf"
+set "OPENSSL_MODULES=%FREERDP_INSTALL%\bin\ossl-modules"
+
 REM 默认参数
 set "HOST="
 set "PORT=53389"

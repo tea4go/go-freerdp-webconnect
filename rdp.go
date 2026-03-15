@@ -790,12 +790,12 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_AutoAcceptCertificate, C.TRUE) // 自动接受证书，避免 TLS 证书交互
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_ColorDepth, 16)
 
-	// 安全协议设置：禁用 NLA/TLS，仅启用 RDP 安全层
-	// 目标服务器不支持 TLS（BIO_do_handshake failed），强制使用 RDP 安全层
-	C.freerdp_settings_set_bool(settings, C.FreeRDP_NlaSecurity, C.FALSE)
-	C.freerdp_settings_set_bool(settings, C.FreeRDP_TlsSecurity, C.FALSE)
+	// 安全协议设置：启用全部三种安全层，让 FreeRDP 自动协商
+	// NLA（网络级别身份验证）→ TLS → RDP 安全层，Windows 11 默认要求 NLA
+	C.freerdp_settings_set_bool(settings, C.FreeRDP_NlaSecurity, C.TRUE)
+	C.freerdp_settings_set_bool(settings, C.FreeRDP_TlsSecurity, C.TRUE)
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_RdpSecurity, C.TRUE)
-	C.freerdp_settings_set_bool(settings, 192, C.TRUE) // FreeRDP_UseRdpSecurityLayer=192，强制使用 RDP 安全层
+	C.freerdp_settings_set_bool(settings, 192, C.FALSE) // FreeRDP_UseRdpSecurityLayer=192，不强制使用 RDP 安全层，允许协商
 
 	// 性能优化标志：禁用壁纸、主题、菜单动画，保留完整窗口拖拽
 	perfFlags := C.PERF_DISABLE_WALLPAPER /*桌面上的壁纸未显示*/ |

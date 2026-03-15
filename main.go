@@ -156,10 +156,10 @@ var BuildTime string             // 构建时间，由构建注入
 
 // main 是程序入口，负责解析命令行参数、初始化日志与自更新、启动 HTTP 服务。
 func main() {
-	pflag.StringVarP(&rdpHost, "host", "", "10.88.16.11", "远程桌面服务器地址")
-	pflag.IntVarP(&rdpPort, "port", "", 53389, "远程桌面服务器端口")
+	pflag.StringVarP(&rdpHost, "host", "", "192.168.52.127", "远程桌面服务器地址")
+	pflag.IntVarP(&rdpPort, "port", "", 3389, "远程桌面服务器端口")
 	pflag.StringVarP(&rdpUser, "user", "", "administrator", "用户名")
-	pflag.StringVarP(&rdpPass, "pass", "", "", "密码（可选，也可在网页表单中填写）")
+	pflag.StringVarP(&rdpPass, "pass", "", "testing123", "密码（可选，也可在网页表单中填写）")
 	pflag.IntVarP(&listenPort, "listen", "", 54455, "HTTP 监听端口")
 	pflag.Parse()
 

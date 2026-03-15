@@ -9,6 +9,10 @@ FREERDP_INSTALL="$PROJECT_DIR/install"
 # 设置 DLL 搜索路径
 export PATH="$MINGW_BIN:$FREERDP_INSTALL/bin:$PATH"
 
+# 启用 OpenSSL legacy provider（NLA/NTLM 认证依赖 MD4/RC4，OpenSSL 3.x 默认禁用）
+export OPENSSL_CONF="$PROJECT_DIR/openssl.cnf"
+export OPENSSL_MODULES="$FREERDP_INSTALL/bin/ossl-modules"
+
 # 解析参数
 HOST=""
 PORT="53389"
