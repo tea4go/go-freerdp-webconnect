@@ -38,9 +38,20 @@ for dll in libfreerdp3.dll libfreerdp-client3.dll libwinpr3.dll; do
     fi
 done
 
-# 测试 3: 帮助信息
+# 测试 3: 检查 MinGW 运行时 DLL
 echo ""
-echo "[测试 3] 检查帮助信息..."
+echo "[测试 3] 检查 MinGW 运行时库..."
+for dll in libssl-3-x64.dll libcrypto-3-x64.dll zlib1.dll libgcc_s_seh-1.dll; do
+    if [ -f "$FREERDP_INSTALL/bin/$dll" ]; then
+        check_pass "$dll 存在"
+    else
+        check_fail "$dll 缺失"
+    fi
+done
+
+# 测试 4: 帮助信息
+echo ""
+echo "[测试 4] 检查帮助信息..."
 HELP_OUT=$("$PROJECT_DIR/gofreerdp-windows.exe" --help 2>&1)
 if echo "$HELP_OUT" | grep -q "host\|listen"; then
     check_pass "帮助信息正常"
@@ -49,9 +60,9 @@ else
     check_fail "帮助信息异常"
 fi
 
-# 测试 4: 版本信息
+# 测试 5: 版本信息
 echo ""
-echo "[测试 4] 检查版本信息..."
+echo "[测试 5] 检查版本信息..."
 VER_OUT=$("$PROJECT_DIR/gofreerdp-windows.exe" --version 2>&1)
 if echo "$VER_OUT" | grep -qE "gofreerdp|version|0\.[0-9]"; then
     check_pass "版本信息: $VER_OUT"
@@ -59,9 +70,9 @@ else
     check_fail "版本信息异常: $VER_OUT"
 fi
 
-# 测试 5: HTTP 服务启动
+# 测试 6: HTTP 服务启动
 echo ""
-echo "[测试 5] 启动 HTTP 服务测试..."
+echo "[测试 6] 启动 HTTP 服务测试..."
 TEST_PORT=56788
 LOG_FILE="$PROJECT_DIR/test_output.log"
 

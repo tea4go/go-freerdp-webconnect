@@ -11,10 +11,12 @@ set "MINGW_BIN=%MSYS64%\mingw64\bin"
 set "FREERDP_SRC=%PROJECT_ROOT%\src\FreeRDP"
 set "FREERDP_BUILD=%PROJECT_ROOT%\build\freerdp-windows"
 set "FREERDP_INSTALL=%PROJECT_ROOT%\install"
+set "FREERDP_BIN=%FREERDP_INSTALL%\bin"
 set "FREERDP_TAG=3.12.0"
 set "SKIP_FREERDP=0"
 set "FORCE_FREERDP=0"
 set "NO_CLONE=0"
+set "MINGW_RUNTIME_DLLS=libssl-3-x64.dll libcrypto-3-x64.dll zlib1.dll libgcc_s_seh-1.dll"
 
 :parse_args
 if "%~1"=="" goto args_done
@@ -142,11 +144,23 @@ if errorlevel 1 (
 
 :go_build
 echo.
+echo [sync] Copy MinGW runtime DLLs to install\bin
+if not exist "%FREERDP_BIN%" mkdir "%FREERDP_BIN%"
+for %%F in (%MINGW_RUNTIME_DLLS%) do (
+    if not exist "%MINGW_BIN%\%%F" (
+        echo ERROR: missing %MINGW_BIN%\%%F
+        echo Please install required packages in MSYS2 MinGW64.
+        exit /b 1
+    )
+    copy /Y "%MINGW_BIN%\%%F" "%FREERDP_BIN%\" >nul
+)
+
+echo.
 echo [2/2] Build Go binary
 cd /d "%PROJECT_ROOT%"
 set "CGO_ENABLED=1"
 set "CC=%MINGW_BIN%\gcc.exe"
-set "PATH=%FREERDP_INSTALL%\bin;%PATH%"
+set "PATH=%FREERDP_BIN%;%PATH%"
 
 go mod tidy
 if errorlevel 1 (
