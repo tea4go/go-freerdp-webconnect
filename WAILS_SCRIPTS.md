@@ -14,6 +14,17 @@
 - Linux: `./wails_dev_linux.sh`
 - Windows: `wails_dev_windows.cmd`
 
+Linux 脚本会自动通过 `pkg-config --list-all | grep webkit` 选择 Wails tags：
+- 检测到 `webkit2gtk-4.1` -> `webkit2_41`
+- 检测到 `webkit2gtk-4.0` -> `webkit2_40`
+- 未检测到则默认 `webkit2_40`
+
+覆盖优先级（高 -> 低）：
+- 命令行显式传入 `-tags/--tags`
+- 环境变量 `WAILS_GO_TAGS`
+- 环境变量 `WEBKIT_TAG`
+- 自动检测结果
+
 ## 打包脚本
 
 - macOS: `./wails_build_macos.sh`
