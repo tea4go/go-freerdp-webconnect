@@ -179,9 +179,9 @@ echo Binary: %PROJECT_ROOT%\gofreerdp-windows.exe
 exit /b 0
 
 :usage
-echo Usage: build_windows.cmd [--skip-freerdp] [--force-freerdp] [--no-clone]
+echo Usage: lib_build_windows.cmd [--skip-freerdp] [--force-freerdp] [--no-clone]
 exit /b 0
 
 :usage_error
-echo Usage: build_windows.cmd [--skip-freerdp] [--force-freerdp] [--no-clone]
+echo Usage: lib_build_windows.cmd [--skip-freerdp] [--force-freerdp] [--no-clone]
 exit /b 1

@@ -19,7 +19,7 @@ FORCE_FREERDP=false
 
 usage() {
     cat <<'EOF'
-用法: ./build_linux.sh [选项]
+用法: ./lib_build_linux.sh [选项]
   --auto-install   自动 apt 安装依赖
   --skip-deps      跳过 apt 依赖安装提示/安装
   --skip-freerdp   跳过 FreeRDP 编译

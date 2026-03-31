@@ -34,7 +34,7 @@
 - `rdp.go`: 添加 macOS CGO 配置
 
 ### 新增的文件
-- `build_macos.sh`: macOS 构建脚本
+- `lib_build_macos.sh`: macOS 构建脚本
 - `run_macos.sh`: macOS 运行脚本
 - `test_macos.sh`: macOS 测试脚本
 - `README_macOS.md`: 本文档
@@ -51,7 +51,7 @@
 
 2. **构建**
    ```bash
-   ./build_macos.sh
+   ./lib_build_macos.sh
    ```
 
 3. **测试**

@@ -336,7 +336,7 @@ libwinpthread-1.dll
 
 **解决方案**
 
-`build_windows.cmd` 和 `wails_build_windows.cmd` 已自动从 MSYS2 的 MinGW 目录复制以下 DLL 到 `install/bin/`。如需手动修复，可执行：
+`lib_build_windows.cmd` 和 `wails_build_windows.cmd` 已自动从 MSYS2 的 MinGW 目录复制以下 DLL 到 `install/bin/`。如需手动修复，可执行：
 
 ```bash
 MINGW_BIN="/c/DevDisk/DevTools/msys64/mingw64/bin"

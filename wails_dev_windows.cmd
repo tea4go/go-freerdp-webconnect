@@ -25,7 +25,7 @@ if errorlevel 1 (
 
 if not exist "%FREERDP_INSTALL%\bin\libfreerdp3.dll" (
     echo ERROR: missing %FREERDP_INSTALL%\bin\libfreerdp3.dll
-    echo Please run: build_windows.cmd
+    echo Please run: lib_build_windows.cmd
     exit /b 1
 )
 

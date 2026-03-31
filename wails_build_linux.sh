@@ -72,7 +72,7 @@ resolve_wails_tags() {
 for required in libfreerdp3.so libfreerdp-client3.so libwinpr3.so; do
     if ! find "${FREERDP_INSTALL}" -type f -name "${required}*" -print -quit 2>/dev/null | grep -q .; then
         echo "ERROR: ${required} not found under ${FREERDP_INSTALL}"
-        echo "Please run: ./build_linux.sh"
+        echo "Please run: ./lib_build_linux.sh"
         exit 1
     fi
 done
@@ -88,7 +88,7 @@ done
 
 if [[ ${#LIB_PATHS[@]} -eq 0 ]]; then
     echo "ERROR: FreeRDP runtime libraries not found in ${FREERDP_INSTALL}"
-    echo "Please run: ./build_linux.sh"
+    echo "Please run: ./lib_build_linux.sh"
     exit 1
 fi
 

@@ -54,7 +54,7 @@ test/
 ### macOS
 
 ```bash
-# 前提：已执行 build_macos.sh，FreeRDP 通过 Homebrew 安装
+# 前提：已执行 lib_build_macos.sh，FreeRDP 通过 Homebrew 安装
 export DYLD_LIBRARY_PATH=/usr/local/opt/freerdp/lib:$DYLD_LIBRARY_PATH
 go test ./test/rdp/ -v -timeout 60s
 ```
@@ -62,7 +62,7 @@ go test ./test/rdp/ -v -timeout 60s
 ### Linux
 
 ```bash
-# 前提：已执行 build_linux.sh，FreeRDP 编译到 install/ 目录
+# 前提：已执行 lib_build_linux.sh，FreeRDP 编译到 install/ 目录
 export LD_LIBRARY_PATH=./install/lib:./install/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
 go test ./test/rdp/ -v -timeout 60s
 ```
