@@ -52,15 +52,14 @@ check_command() {
 echo -e "${GREEN}=== Linux 构建脚本 ===${NC}"
 echo "项目目录: ${PROJECT_ROOT}"
 
-echo -e "\n${YELLOW}[1/5] 检查基础工具...${NC}"
+echo -e "\n${YELLOW}[1/3] 检查基础工具...${NC}"
 check_command cmake
 check_command gcc
 check_command pkg-config
-check_command go
 check_command git
 echo -e "${GREEN}✓ 基础工具检查完成${NC}"
 
-echo -e "\n${YELLOW}[2/5] 处理 Linux 依赖...${NC}"
+echo -e "\n${YELLOW}[2/3] 处理 Linux 依赖...${NC}"
 APT_DEPS=(
     libssl-dev libx11-dev libxext-dev libxinerama-dev libxcursor-dev
     libxdamage-dev libxv-dev libxkbfile-dev libasound2-dev libcups2-dev
@@ -85,7 +84,7 @@ else
 fi
 echo -e "${GREEN}✓ 依赖阶段完成${NC}"
 
-echo -e "\n${YELLOW}[3/5] 编译 FreeRDP...${NC}"
+echo -e "\n${YELLOW}[3/3] 编译 FreeRDP...${NC}"
 if [[ "${SKIP_FREERDP}" == true ]]; then
     echo -e "${YELLOW}跳过 FreeRDP 编译${NC}"
 else
@@ -144,38 +143,5 @@ else
 fi
 echo -e "${GREEN}✓ FreeRDP 阶段完成${NC}"
 
-echo -e "\n${YELLOW}[4/5] Go 依赖...${NC}"
-cd "${PROJECT_ROOT}"
-go mod tidy
-echo -e "${GREEN}✓ Go 依赖就绪${NC}"
-
-echo -e "\n${YELLOW}[5/5] 编译 Go 程序...${NC}"
-LIB_CANDIDATES=(
-    "${FREERDP_INSTALL}/lib"
-    "${FREERDP_INSTALL}/lib64"
-    "${FREERDP_INSTALL}/lib/x86_64-linux-gnu"
-    "${FREERDP_INSTALL}/lib/aarch64-linux-gnu"
-)
-
-LDFLAG_PARTS=()
-RUNTIME_LIB_PATHS=()
-for libdir in "${LIB_CANDIDATES[@]}"; do
-    if [[ -d "${libdir}" ]]; then
-        LDFLAG_PARTS+=("-L${libdir}")
-        RUNTIME_LIB_PATHS+=("${libdir}")
-    fi
-done
-
-if [[ ${#LDFLAG_PARTS[@]} -eq 0 ]]; then
-    echo -e "${RED}错误: 未找到 FreeRDP 库目录，请先执行 FreeRDP 编译${NC}"
-    exit 1
-fi
-
-export CGO_CFLAGS="-I${FREERDP_INSTALL}/include"
-export CGO_LDFLAGS="${LDFLAG_PARTS[*]} -lfreerdp3 -lfreerdp-client3 -lwinpr3"
-export LD_LIBRARY_PATH="$(IFS=:; echo "${RUNTIME_LIB_PATHS[*]}"):${LD_LIBRARY_PATH:-}"
-
-go build -o go-freerdp-webconnect .
-
 echo -e "\n${GREEN}=== 构建成功 ===${NC}"
-echo "产物: ${PROJECT_ROOT}/go-freerdp-webconnect"
+echo "FreeRDP 已安装到: ${FREERDP_INSTALL}"

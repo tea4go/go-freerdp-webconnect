@@ -50,8 +50,7 @@ if not exist "%MINGW_BIN%\mingw32-make.exe" (
 
 where go >nul 2>nul
 if errorlevel 1 (
-    echo ERROR: go not found in PATH
-    exit /b 1
+    echo WARNING: go not found in PATH, skip go check
 )
 
 set "PATH=%MINGW_BIN%;%PATH%"
@@ -76,7 +75,7 @@ if not exist "%FREERDP_SRC%\CMakeLists.txt" (
 )
 
 echo.
-echo [1/2] Build FreeRDP
+echo [1/1] Build FreeRDP
 if "%SKIP_FREERDP%"=="1" (
     echo Skip FreeRDP build
     goto go_build
@@ -156,26 +155,8 @@ for %%F in (%MINGW_RUNTIME_DLLS%) do (
 )
 
 echo.
-echo [2/2] Build Go binary
-cd /d "%PROJECT_ROOT%"
-set "CGO_ENABLED=1"
-set "CC=%MINGW_BIN%\gcc.exe"
-set "PATH=%FREERDP_BIN%;%PATH%"
-
-go mod tidy
-if errorlevel 1 (
-    echo ERROR: go mod tidy failed
-    exit /b 1
-)
-go build -o gofreerdp-windows.exe .
-if errorlevel 1 (
-    echo ERROR: go build failed
-    exit /b 1
-)
-
-echo.
 echo === Build successful ===
-echo Binary: %PROJECT_ROOT%\gofreerdp-windows.exe
+echo FreeRDP installed to: %FREERDP_INSTALL%
 exit /b 0
 
 :usage
