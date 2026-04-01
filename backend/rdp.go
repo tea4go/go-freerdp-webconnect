@@ -5,15 +5,8 @@ package backend
 #cgo darwin LDFLAGS: -L/usr/local/opt/freerdp/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3
 #cgo linux CFLAGS: -I${SRCDIR}/../install/include/freerdp3 -I${SRCDIR}/../install/include/winpr3
 #cgo linux LDFLAGS: -L${SRCDIR}/../install/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3
-#cgo windows CFLAGS: -I${SRCDIR}/../install/include/freerdp3 -I${SRCDIR}/../install/include/winpr3 -D__STDC_NO_THREADS__=1
+#cgo windows CFLAGS: -I${SRCDIR}/../install/include/freerdp3 -I${SRCDIR}/../install/include/winpr3 -std=c17 -D__STDC_NO_THREADS__=1
 #cgo windows LDFLAGS: -L${SRCDIR}/../install/bin -lfreerdp3 -lfreerdp-client3 -lwinpr3
-
-// 在 Windows 上，FreeRDP 头文件中的 WINPR_DEPRECATED_VAR 宏使用了
-// [[deprecated(text)]] 语法（C23/C++14），部分 MinGW 版本不支持。
-// 在 include 之前重定义此宏以移除 deprecated 属性。
-#ifdef _WIN32
-#define WINPR_DEPRECATED_VAR(text, obj) obj
-#endif
 
 #include <freerdp/freerdp.h>
 #include <freerdp/codec/color.h>
