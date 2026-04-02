@@ -115,7 +115,6 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { Connect, GetVersion, SaveFile, OpenFile } from '../wailsjs/go/backend/App'
-import { ClipboardSetText } from '../wailsjs/runtime/runtime'
 import ConfigDialog from '../components/ConfigDialog.vue'
 import ContextMenu from '../components/ContextMenu.vue'
 import type { MenuItem } from '../components/ContextMenu.vue'
