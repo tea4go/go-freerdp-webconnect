@@ -1,12 +1,13 @@
-package main
+package backend
 
 /*
 #cgo darwin CFLAGS: -I/usr/local/opt/freerdp/include/freerdp3 -I/usr/local/opt/freerdp/include/winpr3
 #cgo darwin LDFLAGS: -L/usr/local/opt/freerdp/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3
-#cgo linux CFLAGS: -I${SRCDIR}/install/include/freerdp3 -I${SRCDIR}/install/include/winpr3
-#cgo linux LDFLAGS: -L${SRCDIR}/install/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3
-#cgo windows CFLAGS: -I${SRCDIR}/install/include/freerdp3 -I${SRCDIR}/install/include/winpr3 -D__STDC_NO_THREADS__=1
-#cgo windows LDFLAGS: -L${SRCDIR}/install/bin -lfreerdp3 -lfreerdp-client3 -lwinpr3
+#cgo linux CFLAGS: -I${SRCDIR}/../install/include/freerdp3 -I${SRCDIR}/../install/include/winpr3
+#cgo linux LDFLAGS: -L${SRCDIR}/../install/lib -lfreerdp3 -lfreerdp-client3 -lwinpr3
+#cgo windows CFLAGS: -I${SRCDIR}/../install/include/freerdp3 -I${SRCDIR}/../install/include/winpr3 -std=c17 -D__STDC_NO_THREADS__=1
+#cgo windows LDFLAGS: -L${SRCDIR}/../install/bin -lfreerdp3 -lfreerdp-client3 -lwinpr3
+
 #include <freerdp/freerdp.h>
 #include <freerdp/codec/color.h>
 #include <freerdp/gdi/gdi.h>
@@ -408,6 +409,14 @@ type rdpConnectionSettings struct {
 	width    int
 	height   int
 	port     int
+	perf     int
+	fntlm    int
+	nowallp  bool
+	nowdrag  bool
+	nomani   bool
+	notheme  bool
+	nonla    bool
+	notls    bool
 }
 
 // rdpContextData 保存单个 RDP 连接的所有 Go 侧数据
@@ -451,6 +460,13 @@ func lookupCtx(ctx *C.rdpContext) *rdpContextData {
 // GetFreeRDPVersion 从 FreeRDP 动态库读取版本字符串
 func GetFreeRDPVersion() string {
 	return C.GoString(C.freerdp_get_version_string())
+}
+
+func cBool(v bool) C.BOOL {
+	if v {
+		return C.TRUE
+	}
+	return C.FALSE
 }
 
 // rdpconnect 是 RDP 连接的主函数，运行在独立 goroutine 中
@@ -790,25 +806,54 @@ func preConnect(instance *C.freerdp) C.BOOL {
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_AutoAcceptCertificate, C.TRUE) // 自动接受证书，避免 TLS 证书交互
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_ColorDepth, 16)
 
-	// 安全协议设置：启用全部三种安全层，让 FreeRDP 自动协商
-	// NLA（网络级别身份验证）→ TLS → RDP 安全层，Windows 11 默认要求 NLA
-	C.freerdp_settings_set_bool(settings, C.FreeRDP_NlaSecurity, C.TRUE)
-	C.freerdp_settings_set_bool(settings, C.FreeRDP_TlsSecurity, C.TRUE)
+	// 安全协议设置：默认启用协商；可通过高级参数禁用 NLA/TLS。
+	// 若 TLS 被禁用，则 NLA 必须同步禁用（NLA 依赖 TLS）。
+	nlaEnabled := !d.settings.nonla
+	tlsEnabled := !d.settings.notls
+	if !tlsEnabled {
+		nlaEnabled = false
+	}
+	C.freerdp_settings_set_bool(settings, C.FreeRDP_NlaSecurity, cBool(nlaEnabled))
+	C.freerdp_settings_set_bool(settings, C.FreeRDP_TlsSecurity, cBool(tlsEnabled))
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_RdpSecurity, C.TRUE)
-	C.freerdp_settings_set_bool(settings, 192, C.FALSE) // FreeRDP_UseRdpSecurityLayer=192，不强制使用 RDP 安全层，允许协商
+	// FreeRDP_UseRdpSecurityLayer=192：禁用 TLS 时强制使用 RDP 安全层。
+	C.freerdp_settings_set_bool(settings, 192, cBool(!tlsEnabled))
 
-	// 性能优化标志：禁用壁纸、主题、菜单动画，保留完整窗口拖拽
-	perfFlags := C.PERF_DISABLE_WALLPAPER /*桌面上的壁纸未显示*/ |
-		C.PERF_DISABLE_THEMING /*主题处于禁用状态*/ |
-		C.PERF_DISABLE_MENUANIMATIONS /*菜单动画已禁用*/ |
-		0x00000010 /*TS_PERF_ENABLE_ENHANCED - 启用增强型图形*/ |
+	// 性能优化标志：按高级参数选择是否禁用壁纸/主题/菜单动画/窗口全拖动。
+	// PERF_DISABLE_FULLWINDOWDRAG 对应值为 0x00000002。
+	var perfFlags C.UINT32 = 0
+	if d.settings.nowallp {
+		perfFlags |= C.PERF_DISABLE_WALLPAPER
+	}
+	if d.settings.notheme {
+		perfFlags |= C.PERF_DISABLE_THEMING
+	}
+	if d.settings.nomani {
+		perfFlags |= C.PERF_DISABLE_MENUANIMATIONS
+	}
+	if d.settings.nowdrag {
+		perfFlags |= 0x00000002
+	}
+	perfFlags |= 0x00000010 /*TS_PERF_ENABLE_ENHANCED - 启用增强型图形*/ |
 		0x00000020 /*TS_PERF_DISABLE_CURSOR_SHADOW - 光标不显示阴影*/ |
 		0x00000040 /*TS_PERF_DISABLE_CURSORSETTINGS - 禁用光标闪烁*/ |
 		0x00000080 /*TS_PERF_ENABLE_FONT_SMOOTHING - 启用字体平滑*/ |
 		0x00000100 /*TS_PERF_ENABLE_DESKTOP_COMPOSITION - 启用桌面组合*/
-	C.freerdp_settings_set_uint32(settings, C.FreeRDP_PerformanceFlags, C.UINT32(perfFlags))
+	C.freerdp_settings_set_uint32(settings, C.FreeRDP_PerformanceFlags, perfFlags)
 
-	C.freerdp_settings_set_uint32(settings, C.FreeRDP_ConnectionType, 0x06)                    /*CONNECTION_TYPE_LAN (0x6) 局域网 (LAN) (10 Mbps 或更高)*/
+	// 连接类型：0=局域网(0x06), 1=宽带(0x05), 2=调制解调器(0x01)
+	connectionType := C.UINT32(0x06)
+	switch d.settings.perf {
+	case 1:
+		connectionType = 0x05
+	case 2:
+		connectionType = 0x01
+	}
+	C.freerdp_settings_set_uint32(settings, C.FreeRDP_ConnectionType, connectionType)
+	if d.settings.fntlm > 0 {
+		fmt.Printf("INFO: fntlm=%d requested, current backend does not force NTLM version yet\n", d.settings.fntlm)
+	}
+
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_RemoteFxCodec, C.FALSE)                    // 禁用 RemoteFX（需要 TLS，Windows 上有 NULL 指针问题）
 	C.freerdp_settings_set_bool(settings, C.FreeRDP_FastPathOutput, C.TRUE)                    //Fast-Path 是 RDP（远程桌面协议）的一种优化传输模式，与传统 Slow-Path（基于标准 T.124 协议）相比，它通过减少协议头开销和简化数据封装，显著提升数据传输效率。Fast-Path 常用于图形更新、输入事件等高频率操作。
 	C.freerdp_settings_set_uint32(settings, C.FreeRDP_FrameAcknowledge, 2)                     //一个与远程桌面协议（RDP）图形渲染和帧确认机制相关的功能
