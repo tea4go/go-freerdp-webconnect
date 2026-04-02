@@ -6,7 +6,10 @@ package backend
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync/atomic"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App 是 Wails 绑定对象，暴露给前端 JS 调用
@@ -75,4 +78,41 @@ func (a *App) GetVersion() map[string]string {
 		"app":     a.appVersion,
 		"freerdp": GetFreeRDPVersion(),
 	}
+}
+
+// SaveFile 弹出系统保存文件对话框，将内容写入用户选择的路径
+func (a *App) SaveFile(defaultFilename string, content string) error {
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		DefaultFilename: defaultFilename,
+		Filters: []runtime.FileFilter{
+			{DisplayName: "JSON 文件 (*.json)", Pattern: "*.json"},
+		},
+	})
+	if err != nil {
+		return err
+	}
+	if path == "" {
+		return nil // 用户取消
+	}
+	return os.WriteFile(path, []byte(content), 0644)
+}
+
+// OpenFile 弹出系统打开文件对话框，读取并返回文件内容
+func (a *App) OpenFile() (string, error) {
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Filters: []runtime.FileFilter{
+			{DisplayName: "JSON 文件 (*.json)", Pattern: "*.json"},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	if path == "" {
+		return "", nil // 用户取消
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
 }

@@ -51,7 +51,7 @@ func main() {
 	app := backend.NewApp(appVer)
 
 	err := wails.Run(&options.App{
-		Title:  "FreeRDP WebConnect",
+		Title:  "QRDP",
 		Width:  1024,
 		Height: 768,
 		AssetServer: &assetserver.Options{

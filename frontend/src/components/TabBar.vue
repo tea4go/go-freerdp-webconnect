@@ -18,17 +18,18 @@
     <div
       v-for="s in sessions"
       :key="s.id"
-      class="tab-item"
+      class="tab-item session-tab"
       :class="{ active: activeTabId === s.id }"
-      :title="s.host"
+      :title="s.name + ' (' + s.host + ')'"
       @click="emit('select', s.id)"
       @contextmenu.prevent="onContextMenu(s.id, $event)"
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg class="tab-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2"/>
         <line x1="8" y1="21" x2="16" y2="21"/>
         <line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
+      <span class="tab-label">{{ s.name }}</span>
       <span
         class="status-dot"
         :class="s.status"
@@ -56,6 +57,7 @@ export interface Session {
   id: string
   wsUrl: string
   host: string
+  name: string
   width: number
   height: number
   status: 'connecting' | 'connected' | 'disconnected'
@@ -147,6 +149,12 @@ function onMenuSelect(action: string) {
   flex-shrink: 0;
   user-select: none;
   --wails-draggable: no-drag;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.tab-bar::-webkit-scrollbar {
+  width: 0;
 }
 
 .tab-item {
@@ -161,6 +169,7 @@ function onMenuSelect(action: string) {
   background: #334155;
   position: relative;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
 }
 
 .tab-item:first-child {
@@ -175,6 +184,28 @@ function onMenuSelect(action: string) {
 .tab-item.active {
   background: #3b82f6;
   color: #ffffff;
+}
+
+.session-tab {
+  width: 40px;
+  height: 40px;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 2px;
+}
+
+.tab-icon {
+  flex-shrink: 0;
+}
+
+.tab-label {
+  font-size: 8px;
+  line-height: 1.1;
+  max-width: 36px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .status-dot {

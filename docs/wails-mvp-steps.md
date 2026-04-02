@@ -174,7 +174,7 @@ var assets embed.FS
 func main() {
     app := NewApp()
     wails.Run(&options.App{
-        Title:     "FreeRDP WebConnect",
+        Title:     "QRDP",
         Width:     1024,
         Height:    768,
         Assets:    assets,

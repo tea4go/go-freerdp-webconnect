@@ -68,7 +68,7 @@ function setSessionRef(id: string, el: any) {
   }
 }
 
-function onConnect(wsUrl: string, width: number, height: number) {
+function onConnect(wsUrl: string, width: number, height: number, name: string) {
   // 从 URL 提取 host 参数用于标题显示
   let host = '远程桌面'
   try {
@@ -82,6 +82,7 @@ function onConnect(wsUrl: string, width: number, height: number) {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     wsUrl,
     host,
+    name: name || host,
     width,
     height,
     status: 'connecting',
