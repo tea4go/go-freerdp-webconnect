@@ -34,7 +34,7 @@
 - `rdp.go`: 添加 macOS CGO 配置
 
 ### 新增的文件
-- `build_macos.sh`: macOS 构建脚本
+- `lib_build_macos.sh`: macOS 构建脚本
 - `run_macos.sh`: macOS 运行脚本
 - `test_macos.sh`: macOS 测试脚本
 - `README_macOS.md`: 本文档
@@ -51,7 +51,7 @@
 
 2. **构建**
    ```bash
-   ./build_macos.sh
+   ./lib_build_macos.sh
    ```
 
 3. **测试**
@@ -100,6 +100,7 @@ export DYLD_LIBRARY_PATH=/usr/local/opt/freerdp/lib:$DYLD_LIBRARY_PATH
 - macOS 10.15 (Catalina) 或更高版本
 - Homebrew
 - Go 1.21 或更高版本
+- Node.js 20.19+ 或 22.12+（仅在使用 Wails 前端构建/开发时需要，Vite 要求）
 
 ## 已知问题
 

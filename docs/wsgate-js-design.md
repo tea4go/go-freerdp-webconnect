@@ -24,7 +24,7 @@
 
 ## 1. 概述
 
-`wsgate-debug.js` 是 FreeRDP WebConnect 项目的前端核心模块，实现了一个**基于 HTML5 Canvas + WebSocket 的 RDP 远程桌面客户端**。
+`wsgate-debug.js` 是 QRDP 项目的前端核心模块，实现了一个**基于 HTML5 Canvas + WebSocket 的 RDP 远程桌面客户端**。
 
 主要职责：
 

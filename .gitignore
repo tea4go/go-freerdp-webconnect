@@ -36,3 +36,5 @@ gofreerdp
 .claude/settings.json.whale
 .claude/settings.json.whale.local
 .claude/settings.local.json
+frontend/src/wailsjs
+.superpowers
